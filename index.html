@@ -392,8 +392,9 @@
       border-radius: 50%;
     }
 
-    .dot-green { background: #4ade80; }
-    .dot-red   { background: #f87171; }
+    .dot-green  { background: #4ade80; }
+    .dot-red    { background: #f87171; }
+    .dot-yellow { background: #fbbf24; }
 
     /* ── Empty / Error states ── */
     .empty-state {
@@ -427,7 +428,7 @@
       <div class="dot dot-red" id="key-dot"></div>
       <span id="key-label">No API key</span>
     </div>
-    <button class="btn btn-ghost" onclick="showKeyPrompt()">Change Key</button>
+    <button class="btn btn-ghost" id="key-btn" onclick="showKeyPrompt()">Add API Key</button>
   </div>
 </header>
 
@@ -506,7 +507,7 @@
   // ── Init ──────────────────────────────────────────
   function init() {
     updateKeyStatus();
-    if (!apiKey) showKeyPrompt();
+    // no forced prompt — demo mode works without a key
 
     document.getElementById('search-input').addEventListener('input', onSearchInput);
     document.getElementById('country-select').addEventListener('change', function () {
@@ -519,12 +520,15 @@
   function updateKeyStatus() {
     const dot   = document.getElementById('key-dot');
     const label = document.getElementById('key-label');
+    const btn   = document.getElementById('key-btn');
     if (apiKey) {
-      dot.className   = 'dot dot-green';
+      dot.className     = 'dot dot-green';
       label.textContent = 'API key set';
+      btn.textContent   = 'Change Key';
     } else {
-      dot.className   = 'dot dot-red';
-      label.textContent = 'No API key';
+      dot.className     = 'dot dot-yellow';
+      label.textContent = 'Demo mode';
+      btn.textContent   = 'Add API Key';
     }
   }
 
@@ -588,7 +592,7 @@
   }
 
   async function doSearch(query) {
-    if (!apiKey) { showKeyPrompt(); return; }
+    if (!apiKey) { demoSearch(query); return; }
     currentQuery = query;
     showLoading();
 
@@ -716,6 +720,7 @@
         <div class="empty-icon">🎬</div>
         <h3>Find where to watch anything</h3>
         <p>Search for a movie or TV show to see which streaming services carry it.</p>
+        ${!apiKey ? '<p style="margin-top:0.75rem;font-size:0.8rem;color:#fbbf24;">Demo mode — try searching "Breaking Bad", "Inception", or "Barbie"</p>' : ''}
       </div>`;
   }
 
@@ -748,6 +753,99 @@
     return String(str)
       .replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Demo Mode ─────────────────────────────────────
+  const DEMO = [
+    { id: 1396,   media_type: 'tv',    title: 'Breaking Bad',         year: '2008',
+      overview: 'A high school chemistry teacher turned meth manufacturer partners with a former student.',
+      providers: ['Netflix', 'AMC+'] },
+    { id: 66732,  media_type: 'tv',    title: 'Stranger Things',      year: '2016',
+      overview: 'Kids in a small town uncover supernatural mysteries and government secrets.',
+      providers: ['Netflix'] },
+    { id: 2316,   media_type: 'tv',    title: 'The Office',           year: '2005',
+      overview: 'A mockumentary sitcom about the everyday lives of office employees.',
+      providers: ['Peacock'] },
+    { id: 1399,   media_type: 'tv',    title: 'Game of Thrones',      year: '2011',
+      overview: 'Noble families battle for control of the Iron Throne in the Seven Kingdoms.',
+      providers: ['Max'] },
+    { id: 63174,  media_type: 'tv',    title: 'Succession',           year: '2018',
+      overview: 'The Roy family fights over control of their global media and entertainment empire.',
+      providers: ['Max'] },
+    { id: 76479,  media_type: 'tv',    title: 'The Boys',             year: '2019',
+      overview: 'A group of vigilantes takes on corrupt superheroes who abuse their powers.',
+      providers: ['Prime Video'] },
+    { id: 88329,  media_type: 'tv',    title: 'Ted Lasso',            year: '2020',
+      overview: 'An American football coach is hired to manage an English soccer team.',
+      providers: ['Apple TV+'] },
+    { id: 93405,  media_type: 'tv',    title: 'Squid Game',           year: '2021',
+      overview: 'Desperate contestants risk their lives in deadly children\'s games for a cash prize.',
+      providers: ['Netflix'] },
+    { id: 119051, media_type: 'tv',    title: 'Wednesday',            year: '2022',
+      overview: 'Wednesday Addams investigates a supernatural mystery while attending Nevermore Academy.',
+      providers: ['Netflix'] },
+    { id: 84773,  media_type: 'tv',    title: 'The Last of Us',       year: '2023',
+      overview: 'A hardened survivor guides a teenage girl across post-apocalyptic America.',
+      providers: ['Max'] },
+    { id: 157336, media_type: 'movie', title: 'Interstellar',         year: '2014',
+      overview: 'A team of explorers travel through a wormhole in space to ensure humanity\'s survival.',
+      providers: ['Paramount+'] },
+    { id: 49026,  media_type: 'movie', title: 'The Dark Knight',      year: '2008',
+      overview: 'Batman faces the Joker, a criminal mastermind who wants to plunge Gotham into anarchy.',
+      providers: ['Max'] },
+    { id: 299534, media_type: 'movie', title: 'Avengers: Endgame',    year: '2019',
+      overview: 'The Avengers assemble once more to reverse Thanos\'s actions and restore the universe.',
+      providers: ['Disney+'] },
+    { id: 27205,  media_type: 'movie', title: 'Inception',            year: '2010',
+      overview: 'A thief who enters the dreams of others to steal secrets is given a chance at redemption.',
+      providers: ['Max'] },
+    { id: 438631, media_type: 'movie', title: 'Dune',                 year: '2021',
+      overview: 'Paul Atreides travels to the most dangerous planet in the universe to secure its future.',
+      providers: ['Max', 'Netflix'] },
+    { id: 361743, media_type: 'movie', title: 'Top Gun: Maverick',    year: '2022',
+      overview: 'After years of service, Maverick is called to train a detachment of Top Gun graduates.',
+      providers: ['Paramount+', 'Netflix'] },
+    { id: 385687, media_type: 'movie', title: 'Fast X',               year: '2023',
+      overview: 'Dom Toretto and family face a new threat from the vengeful son of a past enemy.',
+      providers: ['Peacock', 'Netflix'] },
+    { id: 346698, media_type: 'movie', title: 'Barbie',               year: '2023',
+      overview: 'Barbie and Ken leave Barbieland and discover the real world.',
+      providers: ['Max'] },
+  ];
+
+  function demoSearch(query) {
+    currentQuery = query;
+    const q = query.toLowerCase();
+    let matches = DEMO.filter(d => d.title.toLowerCase().includes(q));
+    if (mediaType !== 'all') matches = matches.filter(d => d.media_type === mediaType);
+
+    if (matches.length === 0) { showEmpty(query); return; }
+
+    // convert to the shape renderResults expects
+    const items = matches.map(d => ({
+      id: d.id,
+      media_type: d.media_type,
+      title: d.title,
+      name: d.title,
+      release_date: d.year + '-01-01',
+      first_air_date: d.year + '-01-01',
+      overview: d.overview,
+      poster_path: null,
+      _demoProviders: d.providers,
+    }));
+
+    renderResults(items);
+
+    // inject demo providers immediately (no API call needed)
+    items.forEach(item => {
+      const el = document.getElementById(`prov-${item.id}`);
+      if (!el) return;
+      const chips = item._demoProviders.map(name =>
+        `<span class="provider-chip">${escHtml(name)}</span>`
+      ).join('');
+      el.innerHTML = `<span class="providers-label">Stream on</span>${chips}
+        <span class="no-stream" style="margin-left:0.25rem">(demo data)</span>`;
+    });
   }
 
   init();
