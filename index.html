@@ -284,6 +284,26 @@
       max-width: 100%;
     }
 
+    .card-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .card-title a:hover {
+      color: var(--accent-hover);
+      text-decoration: underline;
+    }
+
+    .justwatch-link {
+      font-size: 0.72rem;
+      color: var(--accent-hover);
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .justwatch-link:hover { text-decoration: underline; }
+
     .card-year {
       font-size: 0.8rem;
       color: var(--muted);
@@ -634,13 +654,18 @@
       const res  = await fetch(url);
       const data = await res.json();
       const region = data.results?.[country];
-      renderProviders(el, region, data.results);
+      const jwLink = region?.link || null;
+      renderProviders(el, region, data.results, jwLink);
     } catch {
       el.innerHTML = '<span class="no-stream">Could not load</span>';
     }
   }
 
-  function renderProviders(el, region, allRegions) {
+  function renderProviders(el, region, allRegions, jwLink) {
+    const jwTag = jwLink
+      ? `<a class="justwatch-link" href="${jwLink}" target="_blank" rel="noopener">All options ↗</a>`
+      : '';
+
     if (!region && !allRegions) {
       el.innerHTML = '<span class="no-stream">Not available in your region</span>';
       return;
@@ -656,12 +681,11 @@
     const unique = all.filter(p => { if (seen.has(p.provider_id)) return false; seen.add(p.provider_id); return true; });
 
     if (unique.length === 0) {
-      // check if available in other regions
       const otherCount = allRegions ? Object.keys(allRegions).length : 0;
       if (otherCount > 0) {
-        el.innerHTML = `<span class="no-stream">Not streaming in your region (available in ${otherCount} other ${otherCount === 1 ? 'country' : 'countries'})</span>`;
+        el.innerHTML = `<span class="no-stream">Not streaming in your region (available in ${otherCount} other ${otherCount === 1 ? 'country' : 'countries'})</span>${jwTag}`;
       } else {
-        el.innerHTML = '<span class="no-stream">Not available for streaming</span>';
+        el.innerHTML = `<span class="no-stream">Not available for streaming</span>${jwTag}`;
       }
       return;
     }
@@ -672,7 +696,7 @@
     }).join('');
 
     const extra = unique.length > 8 ? `<span class="no-stream">+${unique.length - 8} more</span>` : '';
-    el.innerHTML = `<span class="providers-label">Stream on</span>${chips}${extra}`;
+    el.innerHTML = `<span class="providers-label">Stream on</span>${chips}${extra}${jwTag}`;
   }
 
   // ── Render ────────────────────────────────────────
@@ -688,6 +712,8 @@
       const type  = item.media_type === 'movie' ? 'movie' : 'tv';
       const typeLabel = type === 'movie' ? 'Movie' : 'TV Show';
 
+      const tmdbUrl = `https://www.themoviedb.org/${type}/${item.id}`;
+
       const poster = item.poster_path
         ? `<img src="${IMG}${item.poster_path}" alt="${escHtml(title)}" loading="lazy">`
         : `<div class="poster-placeholder">${type === 'movie' ? '🎬' : '📺'}</div>`;
@@ -695,10 +721,10 @@
       const card = document.createElement('div');
       card.className = 'card';
       card.innerHTML = `
-        <div class="poster-wrap">${poster}</div>
+        <div class="poster-wrap"><a href="${tmdbUrl}" target="_blank" rel="noopener" tabindex="-1">${poster}</a></div>
         <div class="card-body">
           <div class="card-title-row">
-            <div class="card-title" title="${escHtml(title)}">${escHtml(title)}</div>
+            <div class="card-title" title="${escHtml(title)}"><a href="${tmdbUrl}" target="_blank" rel="noopener">${escHtml(title)}</a></div>
             ${year ? `<span class="card-year">${year}</span>` : ''}
             <span class="type-badge type-${type}">${typeLabel}</span>
           </div>
@@ -843,8 +869,11 @@
       const chips = item._demoProviders.map(name =>
         `<span class="provider-chip">${escHtml(name)}</span>`
       ).join('');
+      const type = item.media_type === 'movie' ? 'movie' : 'tv';
+      const jwLink = `https://www.justwatch.com/us/search?q=${encodeURIComponent(item.title)}`;
       el.innerHTML = `<span class="providers-label">Stream on</span>${chips}
-        <span class="no-stream" style="margin-left:0.25rem">(demo data)</span>`;
+        <span class="no-stream" style="margin-left:0.25rem">(demo)</span>
+        <a class="justwatch-link" href="${jwLink}" target="_blank" rel="noopener">All options ↗</a>`;
     });
   }
 
