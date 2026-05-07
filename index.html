@@ -359,6 +359,14 @@
       padding: 0.2rem 0.5rem;
       font-size: 0.75rem;
       font-weight: 500;
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    a.provider-chip:hover {
+      border-color: var(--accent);
+      background: var(--surface);
     }
 
     .provider-chip img {
@@ -645,23 +653,45 @@
     }
   }
 
+  // ── Provider URL map (search pages per service) ──────
+  const PROVIDER_SEARCH = {
+    8:    t => `https://www.netflix.com/search?q=${encodeURIComponent(t)}`,
+    9:    t => `https://www.amazon.com/s?k=${encodeURIComponent(t)}&i=prime-instant-video`,
+    10:   t => `https://www.amazon.com/s?k=${encodeURIComponent(t)}&i=prime-instant-video`,
+    119:  t => `https://www.amazon.com/s?k=${encodeURIComponent(t)}&i=prime-instant-video`,
+    15:   t => `https://www.hulu.com/search?q=${encodeURIComponent(t)}`,
+    337:  t => `https://www.disneyplus.com/search/${encodeURIComponent(t)}`,
+    350:  t => `https://tv.apple.com/search?term=${encodeURIComponent(t)}`,
+    384:  t => `https://www.max.com/search?q=${encodeURIComponent(t)}`,
+    386:  t => `https://www.peacocktv.com/search?q=${encodeURIComponent(t)}`,
+    387:  t => `https://www.peacocktv.com/search?q=${encodeURIComponent(t)}`,
+    531:  t => `https://www.paramountplus.com/search/${encodeURIComponent(t)}/`,
+    1899: t => `https://www.max.com/search?q=${encodeURIComponent(t)}`,
+    73:   t => `https://tubitv.com/search/${encodeURIComponent(t)}`,
+    300:  t => `https://pluto.tv/search?q=${encodeURIComponent(t)}`,
+    283:  t => `https://www.crunchyroll.com/search?q=${encodeURIComponent(t)}`,
+    2:    t => `https://www.apple.com/search/${encodeURIComponent(t)}?src=itunes`,
+    3:    t => `https://play.google.com/store/search?q=${encodeURIComponent(t)}&c=movies`,
+  };
+
   // ── Provider Fetching ─────────────────────────────
   async function fetchProviders(item) {
     const el = document.getElementById(`prov-${item.id}`);
     if (!el) return;
+    const title = item.title || item.name || '';
     try {
       const url = `${TMDB}/${item.media_type}/${item.id}/watch/providers?api_key=${encodeURIComponent(apiKey)}`;
       const res  = await fetch(url);
       const data = await res.json();
       const region = data.results?.[country];
       const jwLink = region?.link || null;
-      renderProviders(el, region, data.results, jwLink);
+      renderProviders(el, region, data.results, jwLink, title);
     } catch {
       el.innerHTML = '<span class="no-stream">Could not load</span>';
     }
   }
 
-  function renderProviders(el, region, allRegions, jwLink) {
+  function renderProviders(el, region, allRegions, jwLink, title) {
     const jwTag = jwLink
       ? `<a class="justwatch-link" href="${jwLink}" target="_blank" rel="noopener">All options ↗</a>`
       : '';
@@ -676,7 +706,6 @@
     const ads      = region?.ads      || [];
     const all      = [...flatrate, ...free, ...ads];
 
-    // dedupe by provider_id
     const seen = new Set();
     const unique = all.filter(p => { if (seen.has(p.provider_id)) return false; seen.add(p.provider_id); return true; });
 
@@ -692,7 +721,10 @@
 
     const chips = unique.slice(0, 8).map(p => {
       const logo = p.logo_path ? `<img src="${LOGO}${p.logo_path}" alt="" onerror="this.style.display='none'">` : '';
-      return `<span class="provider-chip">${logo}${escHtml(p.provider_name)}</span>`;
+      const href = PROVIDER_SEARCH[p.provider_id]
+        ? PROVIDER_SEARCH[p.provider_id](title)
+        : jwLink || '#';
+      return `<a class="provider-chip" href="${href}" target="_blank" rel="noopener">${logo}${escHtml(p.provider_name)}</a>`;
     }).join('');
 
     const extra = unique.length > 8 ? `<span class="no-stream">+${unique.length - 8} more</span>` : '';
@@ -863,14 +895,20 @@
     renderResults(items);
 
     // inject demo providers immediately (no API call needed)
+    const DEMO_PROVIDER_IDS = {
+      'Netflix': 8, 'Prime Video': 9, 'Hulu': 15, 'Disney+': 337,
+      'Apple TV+': 350, 'Max': 1899, 'Peacock': 386, 'Paramount+': 531,
+      'AMC+': null, 'Tubi': 73,
+    };
     items.forEach(item => {
       const el = document.getElementById(`prov-${item.id}`);
       if (!el) return;
-      const chips = item._demoProviders.map(name =>
-        `<span class="provider-chip">${escHtml(name)}</span>`
-      ).join('');
-      const type = item.media_type === 'movie' ? 'movie' : 'tv';
       const jwLink = `https://www.justwatch.com/us/search?q=${encodeURIComponent(item.title)}`;
+      const chips = item._demoProviders.map(name => {
+        const pid = DEMO_PROVIDER_IDS[name];
+        const href = pid && PROVIDER_SEARCH[pid] ? PROVIDER_SEARCH[pid](item.title) : jwLink;
+        return `<a class="provider-chip" href="${href}" target="_blank" rel="noopener">${escHtml(name)}</a>`;
+      }).join('');
       el.innerHTML = `<span class="providers-label">Stream on</span>${chips}
         <span class="no-stream" style="margin-left:0.25rem">(demo)</span>
         <a class="justwatch-link" href="${jwLink}" target="_blank" rel="noopener">All options ↗</a>`;
