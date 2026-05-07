@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamFinder — Where to Watch</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d14;
+      --surface: #1a1a2e;
+      --surface2: #252540;
+      --border: #2e2e50;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --text: #f0f0ff;
+      --muted: #8888aa;
+      --badge-bg: #252540;
+      --red: #ef4444;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(180deg, #0a0a18 0%, transparent 100%);
+      padding: 1.5rem 2rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #6366f1, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+
+    .logo span { -webkit-text-fill-color: #f0f0ff; }
+
+    /* ── API Key Banner ── */
+    #api-banner {
+      background: linear-gradient(135deg, #1e1b4b, #312e81);
+      border: 1px solid #4338ca;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 2rem auto;
+      max-width: 560px;
+      text-align: center;
+    }
+
+    #api-banner h2 { font-size: 1.1rem; margin-bottom: 0.4rem; }
+    #api-banner p { color: var(--muted); font-size: 0.875rem; margin-bottom: 1rem; }
+    #api-banner a { color: var(--accent-hover); }
+
+    .key-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .key-row input {
+      flex: 1;
+      background: #0d0d1a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.9rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: monospace;
+    }
+
+    .key-row input:focus { outline: 2px solid var(--accent); }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: opacity 0.15s, background 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ── Search Section ── */
+    #search-section {
+      padding: 2rem 2rem 1rem;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    #search-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.8rem 1.1rem;
+      color: var(--text);
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    #search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+    }
+
+    #search-input::placeholder { color: var(--muted); }
+
+    select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.8rem 1rem;
+      color: var(--text);
+      font-size: 0.875rem;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%238888aa'%3E%3Cpath d='M0 0l6 8 6-8z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2rem;
+    }
+
+    select:focus { outline: 2px solid var(--accent); }
+
+    .filter-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .tab {
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .tab:hover:not(.active) { border-color: var(--muted); color: var(--text); }
+
+    /* ── Status / loading ── */
+    #status {
+      text-align: center;
+      padding: 3rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Results Grid ── */
+    #results {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 1rem 2rem 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .result-count {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      gap: 1rem;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .poster-wrap {
+      flex-shrink: 0;
+      width: 80px;
+    }
+
+    .poster-wrap img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .poster-placeholder {
+      width: 100%;
+      height: 120px;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+    }
+
+    .card-body {
+      flex: 1;
+      padding: 0.9rem 1rem 0.9rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+
+    .card-title-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .card-year {
+      font-size: 0.8rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .type-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .type-movie { background: #1e3a5f; color: #60a5fa; }
+    .type-tv    { background: #1a3a1a; color: #4ade80; }
+
+    .overview {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* ── Streaming providers ── */
+    .providers-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.2rem;
+    }
+
+    .providers-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-right: 0.1rem;
+    }
+
+    .provider-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.2rem 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .provider-chip img {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      object-fit: cover;
+    }
+
+    .no-stream {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .providers-loading {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .providers-loading::after {
+      content: '...';
+      animation: dots 1.2s steps(3, end) infinite;
+    }
+
+    @keyframes dots {
+      0%   { content: ''; }
+      33%  { content: '.'; }
+      66%  { content: '..'; }
+      100% { content: '...'; }
+    }
+
+    /* ── Settings in header ── */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .key-status {
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .key-status .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .dot-green { background: #4ade80; }
+    .dot-red   { background: #f87171; }
+
+    /* ── Empty / Error states ── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+
+    .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-state h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 0.5rem; }
+    .empty-state p  { font-size: 0.875rem; }
+
+    /* ── Responsive ── */
+    @media (max-width: 520px) {
+      header { padding: 1rem; }
+      #search-section { padding: 1.25rem 1rem 0.75rem; }
+      #results { padding: 0.75rem 1rem 3rem; }
+      .poster-wrap { width: 66px; }
+      .poster-wrap img, .poster-placeholder { height: 100px; }
+      .card-title { font-size: 0.92rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">Stream<span>Finder</span></div>
+  <div class="header-right">
+    <div class="key-status" id="key-status">
+      <div class="dot dot-red" id="key-dot"></div>
+      <span id="key-label">No API key</span>
+    </div>
+    <button class="btn btn-ghost" onclick="showKeyPrompt()">Change Key</button>
+  </div>
+</header>
+
+<!-- ── API Key Setup ── -->
+<div id="api-banner" style="display:none; margin: 2rem auto; max-width: 560px; padding: 0 1rem;">
+  <div style="background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca;border-radius:12px;padding:1.5rem;text-align:center;">
+    <h2>Enter your TMDB API Key</h2>
+    <p style="color:var(--muted);font-size:0.875rem;margin:0.5rem 0 1rem;">
+      Free at <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a>
+      &nbsp;&mdash;&nbsp; sign up, go to Settings &rarr; API &rarr; copy your v3 API key.
+    </p>
+    <div class="key-row">
+      <input id="key-input" type="password" placeholder="Paste your API key here…" autocomplete="off" />
+      <button class="btn btn-primary" onclick="saveKey()">Save</button>
+    </div>
+    <div id="key-error" style="color:#f87171;font-size:0.8rem;margin-top:0.6rem;display:none;"></div>
+  </div>
+</div>
+
+<!-- ── Search ── -->
+<div id="search-section">
+  <div class="search-row">
+    <input
+      id="search-input"
+      type="search"
+      placeholder="Search for a movie or TV show…"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <select id="country-select" title="Your country">
+      <option value="US">🇺🇸 United States</option>
+      <option value="GB">🇬🇧 United Kingdom</option>
+      <option value="CA">🇨🇦 Canada</option>
+      <option value="AU">🇦🇺 Australia</option>
+      <option value="DE">🇩🇪 Germany</option>
+      <option value="FR">🇫🇷 France</option>
+      <option value="JP">🇯🇵 Japan</option>
+      <option value="MX">🇲🇽 Mexico</option>
+      <option value="BR">🇧🇷 Brazil</option>
+      <option value="IN">🇮🇳 India</option>
+      <option value="ES">🇪🇸 Spain</option>
+      <option value="IT">🇮🇹 Italy</option>
+      <option value="NL">🇳🇱 Netherlands</option>
+      <option value="SE">🇸🇪 Sweden</option>
+      <option value="KR">🇰🇷 South Korea</option>
+    </select>
+  </div>
+  <div class="filter-tabs">
+    <button class="tab active" data-type="all"   onclick="setType('all')">All</button>
+    <button class="tab"        data-type="movie" onclick="setType('movie')">Movies</button>
+    <button class="tab"        data-type="tv"    onclick="setType('tv')">TV Shows</button>
+  </div>
+</div>
+
+<!-- ── Results ── -->
+<div id="status">
+  <div class="empty-state">
+    <div class="empty-icon">🎬</div>
+    <h3>Find where to watch anything</h3>
+    <p>Search for a movie or TV show to see which streaming services carry it.</p>
+  </div>
+</div>
+<div id="results"></div>
+
+<script>
+  const TMDB = 'https://api.themoviedb.org/3';
+  const IMG  = 'https://image.tmdb.org/t/p/w185';
+  const LOGO = 'https://image.tmdb.org/t/p/original';
+
+  let apiKey  = localStorage.getItem('tmdb_key') || '';
+  let country = 'US';
+  let mediaType = 'all';
+  let searchTimer = null;
+  let currentQuery = '';
+
+  // ── Init ──────────────────────────────────────────
+  function init() {
+    updateKeyStatus();
+    if (!apiKey) showKeyPrompt();
+
+    document.getElementById('search-input').addEventListener('input', onSearchInput);
+    document.getElementById('country-select').addEventListener('change', function () {
+      country = this.value;
+      if (currentQuery) doSearch(currentQuery);
+    });
+  }
+
+  // ── API Key ───────────────────────────────────────
+  function updateKeyStatus() {
+    const dot   = document.getElementById('key-dot');
+    const label = document.getElementById('key-label');
+    if (apiKey) {
+      dot.className   = 'dot dot-green';
+      label.textContent = 'API key set';
+    } else {
+      dot.className   = 'dot dot-red';
+      label.textContent = 'No API key';
+    }
+  }
+
+  function showKeyPrompt() {
+    document.getElementById('api-banner').style.display = 'block';
+    document.getElementById('key-input').value = apiKey;
+    document.getElementById('key-input').focus();
+  }
+
+  async function saveKey() {
+    const val = document.getElementById('key-input').value.trim();
+    const errEl = document.getElementById('key-error');
+    errEl.style.display = 'none';
+    if (!val) { showErr('Please paste your API key.'); return; }
+
+    // quick validation call
+    try {
+      const r = await fetch(`${TMDB}/configuration?api_key=${encodeURIComponent(val)}`);
+      if (!r.ok) { showErr('That key didn\'t work. Check it and try again.'); return; }
+    } catch {
+      showErr('Network error — check your connection.');
+      return;
+    }
+
+    apiKey = val;
+    localStorage.setItem('tmdb_key', apiKey);
+    document.getElementById('api-banner').style.display = 'none';
+    updateKeyStatus();
+    if (currentQuery) doSearch(currentQuery);
+
+    function showErr(msg) {
+      errEl.textContent = msg;
+      errEl.style.display = 'block';
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.activeElement === document.getElementById('key-input')) {
+      saveKey();
+    }
+  });
+
+  // ── Search ────────────────────────────────────────
+  function onSearchInput(e) {
+    const q = e.target.value.trim();
+    clearTimeout(searchTimer);
+    if (!q) {
+      currentQuery = '';
+      showHome();
+      return;
+    }
+    searchTimer = setTimeout(() => doSearch(q), 380);
+  }
+
+  function setType(t) {
+    mediaType = t;
+    document.querySelectorAll('.tab').forEach(el => {
+      el.classList.toggle('active', el.dataset.type === t);
+    });
+    if (currentQuery) doSearch(currentQuery);
+  }
+
+  async function doSearch(query) {
+    if (!apiKey) { showKeyPrompt(); return; }
+    currentQuery = query;
+    showLoading();
+
+    try {
+      const endpoint = mediaType === 'all' ? 'multi' : mediaType;
+      const url = `${TMDB}/search/${endpoint}?api_key=${encodeURIComponent(apiKey)}&query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        if (res.status === 401) { showError('Invalid API key. Please update it.'); showKeyPrompt(); return; }
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const data = await res.json();
+
+      let items = (data.results || []).filter(r =>
+        r.media_type === 'movie' || r.media_type === 'tv' ||
+        mediaType === 'movie' || mediaType === 'tv'
+      ).map(r => ({ ...r, media_type: r.media_type || mediaType }));
+
+      // filter by type if specified
+      if (mediaType !== 'all') items = items.filter(r => r.media_type === mediaType);
+
+      if (items.length === 0) { showEmpty(query); return; }
+
+      renderResults(items);
+      // fetch providers async for each
+      items.forEach(item => fetchProviders(item));
+    } catch (err) {
+      showError('Something went wrong. Please try again.');
+      console.error(err);
+    }
+  }
+
+  // ── Provider Fetching ─────────────────────────────
+  async function fetchProviders(item) {
+    const el = document.getElementById(`prov-${item.id}`);
+    if (!el) return;
+    try {
+      const url = `${TMDB}/${item.media_type}/${item.id}/watch/providers?api_key=${encodeURIComponent(apiKey)}`;
+      const res  = await fetch(url);
+      const data = await res.json();
+      const region = data.results?.[country];
+      renderProviders(el, region, data.results);
+    } catch {
+      el.innerHTML = '<span class="no-stream">Could not load</span>';
+    }
+  }
+
+  function renderProviders(el, region, allRegions) {
+    if (!region && !allRegions) {
+      el.innerHTML = '<span class="no-stream">Not available in your region</span>';
+      return;
+    }
+
+    const flatrate = region?.flatrate || [];
+    const free     = region?.free     || [];
+    const ads      = region?.ads      || [];
+    const all      = [...flatrate, ...free, ...ads];
+
+    // dedupe by provider_id
+    const seen = new Set();
+    const unique = all.filter(p => { if (seen.has(p.provider_id)) return false; seen.add(p.provider_id); return true; });
+
+    if (unique.length === 0) {
+      // check if available in other regions
+      const otherCount = allRegions ? Object.keys(allRegions).length : 0;
+      if (otherCount > 0) {
+        el.innerHTML = `<span class="no-stream">Not streaming in your region (available in ${otherCount} other ${otherCount === 1 ? 'country' : 'countries'})</span>`;
+      } else {
+        el.innerHTML = '<span class="no-stream">Not available for streaming</span>';
+      }
+      return;
+    }
+
+    const chips = unique.slice(0, 8).map(p => {
+      const logo = p.logo_path ? `<img src="${LOGO}${p.logo_path}" alt="" onerror="this.style.display='none'">` : '';
+      return `<span class="provider-chip">${logo}${escHtml(p.provider_name)}</span>`;
+    }).join('');
+
+    const extra = unique.length > 8 ? `<span class="no-stream">+${unique.length - 8} more</span>` : '';
+    el.innerHTML = `<span class="providers-label">Stream on</span>${chips}${extra}`;
+  }
+
+  // ── Render ────────────────────────────────────────
+  function renderResults(items) {
+    document.getElementById('status').innerHTML = '';
+    const container = document.getElementById('results');
+    container.innerHTML = `<div class="result-count">${items.length} result${items.length !== 1 ? 's' : ''}</div>`;
+
+    items.forEach(item => {
+      const title = item.title || item.name || 'Unknown';
+      const date  = item.release_date || item.first_air_date || '';
+      const year  = date ? date.slice(0, 4) : '';
+      const type  = item.media_type === 'movie' ? 'movie' : 'tv';
+      const typeLabel = type === 'movie' ? 'Movie' : 'TV Show';
+
+      const poster = item.poster_path
+        ? `<img src="${IMG}${item.poster_path}" alt="${escHtml(title)}" loading="lazy">`
+        : `<div class="poster-placeholder">${type === 'movie' ? '🎬' : '📺'}</div>`;
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="poster-wrap">${poster}</div>
+        <div class="card-body">
+          <div class="card-title-row">
+            <div class="card-title" title="${escHtml(title)}">${escHtml(title)}</div>
+            ${year ? `<span class="card-year">${year}</span>` : ''}
+            <span class="type-badge type-${type}">${typeLabel}</span>
+          </div>
+          ${item.overview ? `<div class="overview">${escHtml(item.overview)}</div>` : ''}
+          <div class="providers-row" id="prov-${item.id}">
+            <span class="providers-loading">Loading streaming info</span>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  // ── State helpers ─────────────────────────────────
+  function showHome() {
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('status').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🎬</div>
+        <h3>Find where to watch anything</h3>
+        <p>Search for a movie or TV show to see which streaming services carry it.</p>
+      </div>`;
+  }
+
+  function showLoading() {
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('status').innerHTML = `<div class="spinner"></div><p>Searching…</p>`;
+  }
+
+  function showEmpty(query) {
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('status').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <h3>No results for "${escHtml(query)}"</h3>
+        <p>Try a different title or check your spelling.</p>
+      </div>`;
+  }
+
+  function showError(msg) {
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('status').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <h3>Error</h3>
+        <p>${escHtml(msg)}</p>
+      </div>`;
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  init();
+</script>
+</body>
+</html>
