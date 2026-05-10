@@ -5,7 +5,7 @@ import { categorizeRecipe } from '@/lib/categorize';
 
 export async function GET() {
   try {
-    return NextResponse.json(getAllRecipes());
+    return NextResponse.json(await getAllRecipes());
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
@@ -29,13 +29,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Only http/https URLs are allowed' }, { status: 400 });
     }
 
-    if (recipeExists(url)) {
+    if (await recipeExists(url)) {
       return NextResponse.json({ error: 'Recipe already saved' }, { status: 409 });
     }
 
     const scraped = await scrapeRecipe(url);
     const category = await categorizeRecipe(scraped.title, scraped.description);
-    const recipe = insertRecipe({ url, ...scraped, category });
+    const recipe = await insertRecipe({ url, ...scraped, category });
 
     return NextResponse.json(recipe, { status: 201 });
   } catch (err) {

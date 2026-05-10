@@ -7,7 +7,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    deleteRecipe(Number(id));
+    await deleteRecipe(Number(id));
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

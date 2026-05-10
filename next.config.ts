@@ -4,7 +4,6 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [{ protocol: 'https', hostname: '**' }, { protocol: 'http', hostname: '**' }],
   },
-  serverExternalPackages: ['better-sqlite3'],
 };
 
 export default nextConfig;
